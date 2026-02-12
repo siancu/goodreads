@@ -1,0 +1,99 @@
+# AGENTS.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+After adding a new feature or changing how a feature works, and if the feature works as expected, update README.md (if necessary), update AGENTS.md (if necessary), commit and push.
+
+## Project Overview
+
+A Go CLI tool for interacting with Goodreads (since Goodreads deprecated their API in 2020). This is a port of the [Python version](https://github.com/siancu/goodreads).
+
+## Architecture
+
+- **Multi-file CLI** in a single `main` package:
+  - `main.go` — CLI entry point, subcommand routing, flag parsing
+  - `client.go` — HTTP client, cookie persistence, HTML parsing helpers
+  - `auth.go` — login/logout commands
+- **Authentication**: Login via Amazon SSO, cookies saved to `~/.goodreads-cookies.json`
+- **HTTP Client**: `net/http` with `net/http/cookiejar`
+- **HTML Parsing**: `github.com/PuerkitoBio/goquery` (CSS selectors, like BeautifulSoup)
+
+## Build & Run
+
+```bash
+go build -o goodreads .
+./goodreads login
+```
+
+## Key Patterns
+
+### Adding New Commands
+
+1. Create a new file (e.g., `shelf.go`) with command functions:
+
+```go
+func cmdShelfList() {
+    userID := getUserID()
+    client := newClient()
+
+    resp, err := doGet(client, baseURL+"/some/path")
+    if err != nil {
+        fatal("fetching page: %v", err)
+    }
+
+    doc, err := parseHTML(resp)
+    if err != nil {
+        fatal("parsing page: %v", err)
+    }
+
+    // Extract data with goquery selectors and print
+}
+```
+
+2. Register the command in `main.go`:
+   - Add a `case` in the `switch os.Args[1]` block
+   - Parse any subcommand-specific flags
+   - Update `printUsage()`
+
+3. Update README.md and AGENTS.md if needed.
+
+### Helper Functions (client.go)
+
+| Function | Purpose |
+|----------|---------|
+| `getUserID()` | Get saved user ID or exit with error |
+| `newClient()` | Create authenticated HTTP client |
+| `doGet(client, url)` | GET with browser headers |
+| `doPost(client, url, data, referer)` | POST form data with browser headers |
+| `parseHTML(resp)` | Parse response body into goquery document |
+| `extractFormData(doc, formName)` | Extract form action + all input fields |
+| `csrfToken(doc)` | Extract Rails CSRF token from meta tag |
+| `fatal(format, args...)` | Print error to stderr and exit |
+
+### Finding Goodreads Endpoints
+
+1. Open Chrome DevTools → Network tab
+2. Perform the action on goodreads.com
+3. Look at the request URL and response HTML
+4. Use goquery CSS selectors to extract data
+
+## Dependencies
+
+Managed via `go.mod`. Add new dependencies with:
+
+```bash
+go get github.com/some/package
+```
+
+Current external dependencies:
+- `github.com/PuerkitoBio/goquery` — HTML parsing with CSS selectors
+- `golang.org/x/term` — Terminal password input without echo
+
+## Testing
+
+First login, then run commands:
+
+```bash
+./goodreads login
+./goodreads logout
+```
