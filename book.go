@@ -343,38 +343,69 @@ func cmdBookAdd(bookID, shelfName string) {
 	}
 }
 
-// cmdBookRemove removes a book from all shelves.
-func cmdBookRemove(bookID string) {
+// cmdBookRemove removes a book from a specific shelf, or from all shelves if no shelf is given.
+func cmdBookRemove(bookID, shelfName string) {
 	userID := getUserID()
 	token, _ := getCSRFToken(userID)
 
 	bookTitle := fetchBookTitle(bookID)
 
 	client := newClient()
-	data := url.Values{
-		"authenticity_token": {token},
-	}
-
 	referer := fmt.Sprintf("%s/review/list/%s", baseURL, userID)
-	resp, err := doPostWithCSRF(client, fmt.Sprintf("%s/review/destroy/%s", baseURL, bookID), data, referer, token)
-	if err != nil {
-		fatal("removing book: %v", err)
-	}
-	defer resp.Body.Close()
 
-	switch resp.StatusCode {
-	case 200:
-		if bookTitle != "" {
-			fmt.Printf("'%s' removed from your shelves.\n", bookTitle)
-		} else {
-			fmt.Printf("Book %s removed from your shelves.\n", bookID)
+	if shelfName != "" {
+		// Remove from a specific shelf.
+		data := url.Values{
+			"book_id":            {bookID},
+			"name":               {shelfName},
+			"a":                  {"remove"},
+			"authenticity_token": {token},
 		}
-	case 401:
-		fatal("not authorized. Try logging in again.")
-	case 404:
-		fatal("book %s not found in your shelves", bookID)
-	default:
-		fatal("failed to remove book (HTTP %d)", resp.StatusCode)
+		resp, err := doPostWithCSRF(client, baseURL+"/shelf/add_to_shelf", data, referer, token)
+		if err != nil {
+			fatal("removing book from shelf: %v", err)
+		}
+		defer resp.Body.Close()
+
+		switch resp.StatusCode {
+		case 200:
+			if bookTitle != "" {
+				fmt.Printf("'%s' removed from shelf '%s'.\n", bookTitle, shelfName)
+			} else {
+				fmt.Printf("Book %s removed from shelf '%s'.\n", bookID, shelfName)
+			}
+		case 401:
+			fatal("not authorized. Try logging in again.")
+		case 404:
+			fatal("book %s not found", bookID)
+		default:
+			fatal("failed to remove book from shelf (HTTP %d)", resp.StatusCode)
+		}
+	} else {
+		// Remove from all shelves.
+		data := url.Values{
+			"authenticity_token": {token},
+		}
+		resp, err := doPostWithCSRF(client, fmt.Sprintf("%s/review/destroy/%s", baseURL, bookID), data, referer, token)
+		if err != nil {
+			fatal("removing book: %v", err)
+		}
+		defer resp.Body.Close()
+
+		switch resp.StatusCode {
+		case 200:
+			if bookTitle != "" {
+				fmt.Printf("'%s' removed from all shelves.\n", bookTitle)
+			} else {
+				fmt.Printf("Book %s removed from all shelves.\n", bookID)
+			}
+		case 401:
+			fatal("not authorized. Try logging in again.")
+		case 404:
+			fatal("book %s not found in your shelves", bookID)
+		default:
+			fatal("failed to remove book (HTTP %d)", resp.StatusCode)
+		}
 	}
 }
 

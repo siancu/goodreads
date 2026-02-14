@@ -148,9 +148,13 @@ func runBookCommand(args []string) {
 
 	case "remove":
 		if len(args) < 2 {
-			fatal("usage: goodreads book remove <book-id>")
+			fatal("usage: goodreads book remove <book-id> [shelf]")
 		}
-		cmdBookRemove(args[1])
+		shelfName := ""
+		if len(args) >= 3 {
+			shelfName = args[2]
+		}
+		cmdBookRemove(args[1], shelfName)
 
 	case "rate":
 		if len(args) < 3 {
@@ -201,7 +205,7 @@ Commands:
   search <query>           Search for books [--limit N]
   show <book-id>           Show book details
   add <book-id> <shelf>    Add a book to a shelf
-  remove <book-id>         Remove a book from all shelves
+  remove <book-id> [shelf] Remove a book from a shelf (or all shelves)
   rate <book-id> <1-5>     Rate a book
   similar <book-id>        Find similar books [--limit N] [--show-lists] [--list N]`)
 }

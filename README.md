@@ -83,7 +83,7 @@ export GOODREADS_PASSWORD="yourpassword"
 | `./goodreads book search <query>` | Search for books (`--limit N`, default 10) |
 | `./goodreads book show <book-id>` | Show detailed book info |
 | `./goodreads book add <book-id> <shelf>` | Add a book to a shelf |
-| `./goodreads book remove <book-id>` | Remove a book from all shelves |
+| `./goodreads book remove <book-id> [shelf]` | Remove a book from a shelf (or all shelves) |
 | `./goodreads book rate <book-id> <1-5>` | Rate a book |
 | `./goodreads book similar <book-id>` | Find similar books (`--limit N`, `--show-lists`, `--list N`) |
 
