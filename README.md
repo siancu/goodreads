@@ -4,25 +4,39 @@ A command-line interface for Goodreads, written in Go.
 
 Since Goodreads deprecated their public API in December 2020, this tool authenticates via email/password and saves session cookies locally. This is a Go port of the [Python version](https://github.com/siancu/goodreads).
 
-## Prerequisites
-
-- [Go](https://go.dev/) 1.25+
-- A Goodreads account
-
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone git@github.com:siancu/goodreads-go.git
-   cd goodreads-go
-   ```
+### Download a binary (recommended)
 
-2. Build the binary:
-   ```bash
-   go build -o goodreads .
-   ```
+Grab the latest release for your platform from the [Releases page](https://github.com/siancu/goodreads-go/releases):
 
-3. Log in (see [Authentication](#authentication))
+```bash
+# macOS (Apple Silicon)
+curl -L https://github.com/siancu/goodreads-go/releases/latest/download/goodreads-go_Darwin_arm64.tar.gz | tar xz
+sudo mv goodreads /usr/local/bin/
+
+# macOS (Intel)
+curl -L https://github.com/siancu/goodreads-go/releases/latest/download/goodreads-go_Darwin_amd64.tar.gz | tar xz
+sudo mv goodreads /usr/local/bin/
+
+# Linux (x86_64)
+curl -L https://github.com/siancu/goodreads-go/releases/latest/download/goodreads-go_Linux_amd64.tar.gz | tar xz
+sudo mv goodreads /usr/local/bin/
+
+# Linux (ARM64)
+curl -L https://github.com/siancu/goodreads-go/releases/latest/download/goodreads-go_Linux_arm64.tar.gz | tar xz
+sudo mv goodreads /usr/local/bin/
+```
+
+### Build from source
+
+Requires [Go](https://go.dev/) 1.25+.
+
+```bash
+git clone git@github.com:siancu/goodreads-go.git
+cd goodreads-go
+go build -o goodreads .
+```
 
 ## Authentication
 

@@ -27,6 +27,19 @@ go build -o goodreads .
 ./goodreads login
 ```
 
+## Releasing
+
+Releases are automated via GoReleaser + GitHub Actions. To create a release:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This triggers `.github/workflows/release.yml`, which builds binaries for macOS and Linux (amd64 + arm64) and creates a GitHub Release with the archives attached.
+
+Configuration: `.goreleaser.yaml`
+
 ## Key Patterns
 
 ### Adding New Commands
