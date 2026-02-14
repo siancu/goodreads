@@ -119,10 +119,15 @@ func cmdBookShow(bookID string) {
 		title = strings.TrimSpace(title)
 	}
 
-	// Authors
+	// Authors (deduplicate — Goodreads lists the same author multiple times for different roles).
 	var authors []string
+	seenAuthors := make(map[string]bool)
 	doc.Find("span.ContributorLink__name[data-testid=name]").Each(func(_ int, s *goquery.Selection) {
-		authors = append(authors, strings.TrimSpace(s.Text()))
+		name := strings.TrimSpace(s.Text())
+		if name != "" && !seenAuthors[name] {
+			seenAuthors[name] = true
+			authors = append(authors, name)
+		}
 	})
 	if len(authors) == 0 {
 		if el := doc.Find("a.authorName"); el.Length() > 0 {
@@ -130,9 +135,9 @@ func cmdBookShow(bookID string) {
 		}
 	}
 
-	// Rating
+	// Rating (use First — the page has duplicate rating elements).
 	rating := ""
-	if el := doc.Find("div.RatingStatistics__rating"); el.Length() > 0 {
+	if el := doc.Find("div.RatingStatistics__rating").First(); el.Length() > 0 {
 		rating = strings.TrimSpace(el.Text())
 	}
 
@@ -149,9 +154,10 @@ func cmdBookShow(bookID string) {
 		}
 	})
 
-	// Description
+	// Description (use First — the page has multiple span.Formatted; the first is the
+	// book description, later ones are author bio and reviews).
 	description := ""
-	if el := doc.Find("div.DetailsLayoutRightParagraph__widthConstrained span.Formatted"); el.Length() > 0 {
+	if el := doc.Find("div.DetailsLayoutRightParagraph__widthConstrained span.Formatted").First(); el.Length() > 0 {
 		description = strings.TrimSpace(el.Text())
 	} else if el := doc.Find("meta[property='og:description']"); el.Length() > 0 {
 		description, _ = el.Attr("content")
