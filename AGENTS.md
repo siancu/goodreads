@@ -14,6 +14,8 @@ A Go CLI tool for interacting with Goodreads (since Goodreads deprecated their A
   - `main.go` — CLI entry point, subcommand routing, flag parsing
   - `client.go` — HTTP client, cookie persistence, HTML parsing helpers
   - `auth.go` — login/logout commands
+  - `shelf.go` — shelf management commands (list, show, add, delete)
+  - `book.go` — book commands (search, show, add, remove, rate, similar)
 - **Authentication**: Login via Amazon SSO, cookies saved to `~/.goodreads-cookies.json`
 - **HTTP Client**: `net/http` with `net/http/cookiejar`
 - **HTML Parsing**: `github.com/PuerkitoBio/goquery` (CSS selectors, like BeautifulSoup)
@@ -70,6 +72,20 @@ func cmdShelfList() {
 | `csrfToken(doc)` | Extract Rails CSRF token from meta tag |
 | `fatal(format, args...)` | Print error to stderr and exit |
 
+### Shared Helpers (shelf.go)
+
+| Function | Purpose |
+|----------|---------|
+| `doPostWithCSRF(client, url, data, referer, token)` | POST as Rails AJAX with CSRF headers |
+| `doDelete(client, url, token, referer)` | DELETE as Rails AJAX call |
+
+### Shared Helpers (book.go)
+
+| Function | Purpose |
+|----------|---------|
+| `getCSRFToken(userID)` | Fetch CSRF token from review list page |
+| `fetchBookTitle(bookID)` | Fetch a book's title (returns "" on failure) |
+
 ### Finding Goodreads Endpoints
 
 1. Open Chrome DevTools → Network tab
@@ -95,5 +111,8 @@ First login, then run commands:
 
 ```bash
 ./goodreads login
+./goodreads shelf list
+./goodreads book search "project hail mary"
+./goodreads book show 54493401
 ./goodreads logout
 ```

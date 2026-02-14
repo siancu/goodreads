@@ -60,14 +60,32 @@ export GOODREADS_PASSWORD="yourpassword"
 
 ## Usage
 
-*Commands are being ported incrementally. See below for what's available so far.*
-
 ### Authentication
 
 | Command | Description |
 |---------|-------------|
 | `./goodreads login` | Log in to Goodreads |
 | `./goodreads logout` | Log out (remove saved cookies) |
+
+### Shelves
+
+| Command | Description |
+|---------|-------------|
+| `./goodreads shelf list` | List all your shelves |
+| `./goodreads shelf show <name>` | Show books on a shelf |
+| `./goodreads shelf add <name>` | Create a new shelf |
+| `./goodreads shelf delete <name>` | Delete a shelf (`--force` to skip confirmation) |
+
+### Books
+
+| Command | Description |
+|---------|-------------|
+| `./goodreads book search <query>` | Search for books (`--limit N`, default 10) |
+| `./goodreads book show <book-id>` | Show detailed book info |
+| `./goodreads book add <book-id> <shelf>` | Add a book to a shelf |
+| `./goodreads book remove <book-id>` | Remove a book from all shelves |
+| `./goodreads book rate <book-id> <1-5>` | Rate a book |
+| `./goodreads book similar <book-id>` | Find similar books (`--limit N`, `--show-lists`, `--list N`) |
 
 ## Cookie Expiration
 

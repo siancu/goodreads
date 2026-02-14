@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strconv"
 )
 
 func main() {
@@ -21,6 +22,9 @@ func main() {
 
 	case "shelf":
 		runShelfCommand(os.Args[2:])
+
+	case "book":
+		runBookCommand(os.Args[2:])
 
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", os.Args[1])
@@ -110,7 +114,96 @@ Usage:
 Commands:
   login     Log in to Goodreads
   logout    Log out (remove saved cookies)
-  shelf     Manage shelves`)
+  shelf     Manage shelves
+  book      Manage books`)
+}
+
+// runBookCommand dispatches book subcommands.
+func runBookCommand(args []string) {
+	if len(args) == 0 {
+		printBookUsage()
+		os.Exit(1)
+	}
+
+	switch args[0] {
+	case "search":
+		if len(args) < 2 {
+			fatal("usage: goodreads book search <query> [--limit N]")
+		}
+		query := args[1]
+		limit := flagInt(args[2:], "--limit", "-n", 10)
+		cmdBookSearch(query, limit)
+
+	case "show":
+		if len(args) < 2 {
+			fatal("usage: goodreads book show <book-id>")
+		}
+		cmdBookShow(args[1])
+
+	case "add":
+		if len(args) < 3 {
+			fatal("usage: goodreads book add <book-id> <shelf>")
+		}
+		cmdBookAdd(args[1], args[2])
+
+	case "remove":
+		if len(args) < 2 {
+			fatal("usage: goodreads book remove <book-id>")
+		}
+		cmdBookRemove(args[1])
+
+	case "rate":
+		if len(args) < 3 {
+			fatal("usage: goodreads book rate <book-id> <1-5>")
+		}
+		rating, err := strconv.Atoi(args[2])
+		if err != nil {
+			fatal("rating must be a number between 1 and 5")
+		}
+		cmdBookRate(args[1], rating)
+
+	case "similar":
+		if len(args) < 2 {
+			fatal("usage: goodreads book similar <book-id> [--limit N] [--show-lists] [--list N]")
+		}
+		bookID := args[1]
+		rest := args[2:]
+		limit := flagInt(rest, "--limit", "-n", 10)
+		showLists := hasFlag(rest, "--show-lists", "--show-lists")
+		listIndex := flagInt(rest, "--list", "-l", 0)
+		cmdBookSimilar(bookID, limit, showLists, listIndex)
+
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown book command: %s\n\n", args[0])
+		printBookUsage()
+		os.Exit(1)
+	}
+}
+
+// flagInt extracts an integer flag value from args, returning defaultVal if not found.
+func flagInt(args []string, long, short string, defaultVal int) int {
+	for i, a := range args {
+		if (a == long || a == short) && i+1 < len(args) {
+			v, err := strconv.Atoi(args[i+1])
+			if err == nil {
+				return v
+			}
+		}
+	}
+	return defaultVal
+}
+
+func printBookUsage() {
+	fmt.Println(`Usage:
+  goodreads book <command> [arguments]
+
+Commands:
+  search <query>           Search for books [--limit N]
+  show <book-id>           Show book details
+  add <book-id> <shelf>    Add a book to a shelf
+  remove <book-id>         Remove a book from all shelves
+  rate <book-id> <1-5>     Rate a book
+  similar <book-id>        Find similar books [--limit N] [--show-lists] [--list N]`)
 }
 
 func printShelfUsage() {
