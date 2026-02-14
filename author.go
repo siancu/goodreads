@@ -11,6 +11,136 @@ import (
 
 var reAuthorID = regexp.MustCompile(`/author/show/(\d+)`)
 
+// authorSearchResult holds an author from search results.
+type authorSearchResult struct {
+	ID, Name string
+}
+
+// authorInfo holds parsed data from an author's profile page.
+type authorInfo struct {
+	Name    string
+	Bio     string
+	Website string
+	Born    string
+	Genres  []string
+}
+
+// authorBookEntry holds a book from an author's book list.
+type authorBookEntry struct {
+	ID, Title, Rating string
+}
+
+// parseAuthorSearchResults extracts author results from a search page.
+func parseAuthorSearchResults(doc *goquery.Document, limit int) []authorSearchResult {
+	var authors []authorSearchResult
+	seenIDs := make(map[string]bool)
+
+	doc.Find("a.authorName[href*='/author/show/']").Each(func(_ int, s *goquery.Selection) {
+		if len(authors) >= limit {
+			return
+		}
+		href, _ := s.Attr("href")
+		m := reAuthorID.FindStringSubmatch(href)
+		if m == nil {
+			return
+		}
+		id := m[1]
+		if seenIDs[id] {
+			return
+		}
+		seenIDs[id] = true
+		authors = append(authors, authorSearchResult{ID: id, Name: strings.TrimSpace(s.Text())})
+	})
+
+	return authors
+}
+
+// parseAuthorInfo extracts author details from an author profile page.
+func parseAuthorInfo(doc *goquery.Document) authorInfo {
+	var info authorInfo
+
+	// Author name.
+	if el := doc.Find("h1.authorName span[itemprop=name]"); el.Length() > 0 {
+		info.Name = strings.TrimSpace(el.Text())
+	} else if el := doc.Find("title"); el.Length() > 0 {
+		titleText := strings.TrimSpace(el.Text())
+		re := regexp.MustCompile(`^(.+?)\s*\(Author`)
+		if m := re.FindStringSubmatch(titleText); m != nil {
+			info.Name = strings.TrimSpace(m[1])
+		}
+	}
+
+	// Bio.
+	if el := doc.Find("div.aboutAuthorInfo span"); el.Length() > 0 {
+		info.Bio = strings.TrimSpace(el.Text())
+		info.Bio = regexp.MustCompile(`\s+`).ReplaceAllString(info.Bio, " ")
+	}
+
+	// Website and born/genres from dataTitle/dataItem pairs.
+	doc.Find("div.dataTitle").Each(func(_ int, item *goquery.Selection) {
+		label := strings.ToLower(strings.TrimSpace(item.Text()))
+		valueEl := item.Next()
+		if valueEl.Length() == 0 {
+			return
+		}
+
+		if strings.Contains(label, "website") {
+			if link := valueEl.Find("a[href*='http']"); link.Length() > 0 {
+				info.Website, _ = link.Attr("href")
+			}
+		} else if strings.Contains(label, "born") {
+			info.Born = strings.TrimSpace(valueEl.Text())
+		} else if strings.Contains(label, "genre") {
+			valueEl.Find("a").Each(func(i int, g *goquery.Selection) {
+				if i < 5 {
+					info.Genres = append(info.Genres, strings.TrimSpace(g.Text()))
+				}
+			})
+		}
+	})
+
+	return info
+}
+
+// parseAuthorBooks extracts books from an author's profile page.
+func parseAuthorBooks(doc *goquery.Document, limit int) []authorBookEntry {
+	var books []authorBookEntry
+
+	doc.Find("tr[itemtype='http://schema.org/Book']").Each(func(_ int, row *goquery.Selection) {
+		if len(books) >= limit {
+			return
+		}
+
+		titleLink := row.Find("a.bookTitle")
+		if titleLink.Length() == 0 {
+			return
+		}
+
+		href, _ := titleLink.Attr("href")
+		m := reBookID.FindStringSubmatch(href)
+		if m == nil {
+			return
+		}
+
+		// Use innermost span if present to avoid duplicated text.
+		title := ""
+		if span := titleLink.Find("span").First(); span.Length() > 0 {
+			title = strings.TrimSpace(span.Text())
+		} else {
+			title = strings.TrimSpace(titleLink.Text())
+		}
+
+		rating := ""
+		if el := row.Find("span.minirating"); el.Length() > 0 {
+			rating = strings.TrimSpace(el.Text())
+		}
+
+		books = append(books, authorBookEntry{ID: m[1], Title: title, Rating: rating})
+	})
+
+	return books
+}
+
 // cmdAuthorSearch searches for authors by name.
 func cmdAuthorSearch(query string, limit int) {
 	client := newClient()
@@ -29,29 +159,7 @@ func cmdAuthorSearch(query string, limit int) {
 		fatal("parsing search results: %v", err)
 	}
 
-	// Find author links in search results and deduplicate by ID.
-	type authorResult struct {
-		id, name string
-	}
-	var authors []authorResult
-	seenIDs := make(map[string]bool)
-
-	doc.Find("a.authorName[href*='/author/show/']").Each(func(_ int, s *goquery.Selection) {
-		if len(authors) >= limit {
-			return
-		}
-		href, _ := s.Attr("href")
-		m := reAuthorID.FindStringSubmatch(href)
-		if m == nil {
-			return
-		}
-		id := m[1]
-		if seenIDs[id] {
-			return
-		}
-		seenIDs[id] = true
-		authors = append(authors, authorResult{id: id, name: strings.TrimSpace(s.Text())})
-	})
+	authors := parseAuthorSearchResults(doc, limit)
 
 	if len(authors) == 0 {
 		fmt.Printf("No authors found for '%s'.\n", query)
@@ -61,7 +169,7 @@ func cmdAuthorSearch(query string, limit int) {
 	fmt.Printf("Author search results for '%s':\n", query)
 	fmt.Println(strings.Repeat("-", 60))
 	for _, a := range authors {
-		fmt.Printf("  [%s] %s\n", a.id, a.name)
+		fmt.Printf("  [%s] %s\n", a.ID, a.Name)
 	}
 }
 
@@ -86,74 +194,30 @@ func cmdAuthorShow(authorID string) {
 		fatal("parsing author page: %v", err)
 	}
 
-	// Author name.
-	name := ""
-	if el := doc.Find("h1.authorName span[itemprop=name]"); el.Length() > 0 {
-		name = strings.TrimSpace(el.Text())
-	} else if el := doc.Find("title"); el.Length() > 0 {
-		titleText := strings.TrimSpace(el.Text())
-		re := regexp.MustCompile(`^(.+?)\s*\(Author`)
-		if m := re.FindStringSubmatch(titleText); m != nil {
-			name = strings.TrimSpace(m[1])
-		}
-	}
-
-	// Bio.
-	bio := ""
-	if el := doc.Find("div.aboutAuthorInfo span"); el.Length() > 0 {
-		bio = strings.TrimSpace(el.Text())
-		bio = regexp.MustCompile(`\s+`).ReplaceAllString(bio, " ")
-	}
-
-	// Website and born/genres from dataTitle/dataItem pairs.
-	website := ""
-	born := ""
-	var genres []string
-
-	doc.Find("div.dataTitle").Each(func(_ int, item *goquery.Selection) {
-		label := strings.ToLower(strings.TrimSpace(item.Text()))
-		valueEl := item.Next()
-		if valueEl.Length() == 0 {
-			return
-		}
-
-		if strings.Contains(label, "website") {
-			if link := valueEl.Find("a[href*='http']"); link.Length() > 0 {
-				website, _ = link.Attr("href")
-			}
-		} else if strings.Contains(label, "born") {
-			born = strings.TrimSpace(valueEl.Text())
-		} else if strings.Contains(label, "genre") {
-			valueEl.Find("a").Each(func(i int, g *goquery.Selection) {
-				if i < 5 {
-					genres = append(genres, strings.TrimSpace(g.Text()))
-				}
-			})
-		}
-	})
+	info := parseAuthorInfo(doc)
 
 	// Print.
 	fmt.Println(strings.Repeat("=", 60))
-	if name != "" {
-		fmt.Printf("  %s\n", name)
+	if info.Name != "" {
+		fmt.Printf("  %s\n", info.Name)
 	} else {
 		fmt.Printf("  Author ID: %s\n", authorID)
 	}
 	fmt.Println(strings.Repeat("-", 60))
 
-	if born != "" {
-		fmt.Printf("  Born: %s\n", born)
+	if info.Born != "" {
+		fmt.Printf("  Born: %s\n", info.Born)
 	}
-	if len(genres) > 0 {
-		fmt.Printf("  Genres: %s\n", strings.Join(genres, ", "))
+	if len(info.Genres) > 0 {
+		fmt.Printf("  Genres: %s\n", strings.Join(info.Genres, ", "))
 	}
-	if website != "" {
-		fmt.Printf("  Website: %s\n", website)
+	if info.Website != "" {
+		fmt.Printf("  Website: %s\n", info.Website)
 	}
 
-	if bio != "" {
+	if info.Bio != "" {
 		fmt.Println(strings.Repeat("-", 60))
-		printWrapped(bio, 70)
+		printWrapped(info.Bio, 70)
 	}
 
 	fmt.Println(strings.Repeat("=", 60))
@@ -187,43 +251,7 @@ func cmdAuthorBooks(authorID string, limit int) {
 		name = strings.TrimSpace(el.Text())
 	}
 
-	// Find books in the table.
-	type authorBook struct {
-		id, title, rating string
-	}
-	var books []authorBook
-
-	doc.Find("tr[itemtype='http://schema.org/Book']").Each(func(_ int, row *goquery.Selection) {
-		if len(books) >= limit {
-			return
-		}
-
-		titleLink := row.Find("a.bookTitle")
-		if titleLink.Length() == 0 {
-			return
-		}
-
-		href, _ := titleLink.Attr("href")
-		m := reBookID.FindStringSubmatch(href)
-		if m == nil {
-			return
-		}
-
-		// Use innermost span if present to avoid duplicated text.
-		title := ""
-		if span := titleLink.Find("span").First(); span.Length() > 0 {
-			title = strings.TrimSpace(span.Text())
-		} else {
-			title = strings.TrimSpace(titleLink.Text())
-		}
-
-		rating := ""
-		if el := row.Find("span.minirating"); el.Length() > 0 {
-			rating = strings.TrimSpace(el.Text())
-		}
-
-		books = append(books, authorBook{id: m[1], title: title, rating: rating})
-	})
+	books := parseAuthorBooks(doc, limit)
 
 	// Print.
 	if name != "" {
@@ -239,9 +267,9 @@ func cmdAuthorBooks(authorID string, limit int) {
 	}
 
 	for _, b := range books {
-		fmt.Printf("  [%s] %s\n", b.id, b.title)
-		if b.rating != "" {
-			fmt.Printf("    %s\n", b.rating)
+		fmt.Printf("  [%s] %s\n", b.ID, b.Title)
+		if b.Rating != "" {
+			fmt.Printf("    %s\n", b.Rating)
 		}
 		fmt.Println()
 	}
