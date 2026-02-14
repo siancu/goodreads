@@ -235,10 +235,22 @@ func cmdShelfAdd(shelfName string, debug bool) {
 	// Find the add-shelf form. Goodreads uses several possible IDs/classes.
 	form := doc.Find("form#addShelfForm")
 	if form.Length() == 0 {
+		form = doc.Find("form#shelf_name_form")
+	}
+	if form.Length() == 0 {
 		form = doc.Find("form.addShelfForm")
 	}
 	if form.Length() == 0 {
-		form = doc.Find("form[action*='/user_shelves'], form[action*='/shelf']")
+		// Match by action, but only the exact /user_shelves endpoint (not /user_shelves/ID).
+		doc.Find("form").Each(func(_ int, s *goquery.Selection) {
+			if form.Length() > 0 {
+				return
+			}
+			action, _ := s.Attr("action")
+			if action == "/user_shelves" {
+				form = s
+			}
+		})
 	}
 
 	if debug {
@@ -453,7 +465,7 @@ func doPostWithCSRF(client *http.Client, rawURL string, data url.Values, referer
 	}
 	req.Header.Set("User-Agent", userAgent)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept", "text/javascript, application/javascript, application/ecmascript, application/x-ecmascript, */*; q=0.01")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.9")
 	req.Header.Set("Referer", referer)
 	req.Header.Set("X-CSRF-Token", token)
