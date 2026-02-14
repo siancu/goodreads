@@ -566,11 +566,20 @@ func cmdBookSimilar(bookID string, limit int, showLists bool, listIndex int) {
 			return
 		}
 
+		// The link may contain a nested <span> with a shorter title,
+		// producing duplicated text. Use the innermost span if present.
+		title := ""
+		if span := titleLink.Find("span").First(); span.Length() > 0 {
+			title = strings.TrimSpace(span.Text())
+		} else {
+			title = strings.TrimSpace(titleLink.Text())
+		}
+
 		results = append(results, similarBook{
 			id:     rowBookID,
-			title:  strings.TrimSpace(titleLink.Text()),
-			author: strings.TrimSpace(row.Find("a.authorName").Text()),
-			rating: strings.TrimSpace(row.Find("span.minirating").Text()),
+			title:  title,
+			author: strings.TrimSpace(row.Find("a.authorName").First().Text()),
+			rating: strings.TrimSpace(row.Find("span.minirating").First().Text()),
 		})
 	})
 
