@@ -1,0 +1,183 @@
+package main
+
+import (
+	"fmt"
+	"regexp"
+	"sort"
+	"strings"
+
+	"github.com/PuerkitoBio/goquery"
+)
+
+// review holds data parsed from a single Goodreads review card.
+type review struct {
+	ReviewerName string
+	Rating       int // 1-5, or 0 if unknown
+	Date         string
+	Text         string
+}
+
+var reStarRating = regexp.MustCompile(`(?i)Rating\s+(\d)\s+out\s+of\s+5`)
+
+// parseStarRating extracts a numeric rating from an aria-label like "Rating 4 out of 5".
+// Returns 0 if the rating cannot be determined.
+func parseStarRating(ariaLabel string) int {
+	m := reStarRating.FindStringSubmatch(ariaLabel)
+	if m == nil {
+		return 0
+	}
+	return int(m[1][0] - '0')
+}
+
+// parseReviews extracts reviews from a Goodreads book show page.
+func parseReviews(doc *goquery.Document) []review {
+	var reviews []review
+
+	doc.Find("article.ReviewCard").Each(func(_ int, card *goquery.Selection) {
+		var r review
+
+		// Reviewer name.
+		if el := card.Find("div.ReviewerProfile__name"); el.Length() > 0 {
+			r.ReviewerName = strings.TrimSpace(el.Text())
+		}
+
+		// Star rating from aria-label.
+		if el := card.Find("span.RatingStars"); el.Length() > 0 {
+			if label, ok := el.Attr("aria-label"); ok {
+				r.Rating = parseStarRating(label)
+			}
+		}
+
+		// Date.
+		if el := card.Find("section.ReviewCard__row span.Text.Text__body3"); el.Length() > 0 {
+			r.Date = strings.TrimSpace(el.Text())
+		}
+
+		// Review text.
+		if el := card.Find("section.ReviewText span.Formatted"); el.Length() > 0 {
+			r.Text = strings.TrimSpace(el.Text())
+		}
+
+		reviews = append(reviews, r)
+	})
+
+	return reviews
+}
+
+// cmdBookReviews displays reviews for a book, optionally filtered to best/worst by rating.
+func cmdBookReviews(bookID string, bestN, worstN, limit int) {
+	client := newClient()
+
+	resp, err := doGet(client, fmt.Sprintf("%s/book/show/%s", baseURL, bookID))
+	if err != nil {
+		fatal("fetching book: %v", err)
+	}
+	if resp.StatusCode == 404 {
+		fatal("book %s not found", bookID)
+	}
+	if resp.StatusCode != 200 {
+		fatal("fetching book: HTTP %d", resp.StatusCode)
+	}
+
+	doc, err := parseHTML(resp)
+	if err != nil {
+		fatal("parsing book page: %v", err)
+	}
+
+	// Book title for display.
+	title := ""
+	if el := doc.Find("h1[data-testid=bookTitle]"); el.Length() > 0 {
+		title = strings.TrimSpace(el.Text())
+	}
+
+	reviews := parseReviews(doc)
+	if len(reviews) == 0 {
+		fmt.Println("No reviews found.")
+		return
+	}
+
+	useBestWorst := bestN > 0 || worstN > 0
+
+	if useBestWorst {
+		if bestN > 0 {
+			printReviewSection(title, bookID, reviews, bestN, "best")
+		}
+		if worstN > 0 {
+			if bestN > 0 {
+				fmt.Println()
+			}
+			printReviewSection(title, bookID, reviews, worstN, "worst")
+		}
+	} else {
+		printReviewSection(title, bookID, reviews, limit, "default")
+	}
+}
+
+// printReviewSection prints a sorted/limited section of reviews.
+// mode is "best", "worst", or "default" (page order).
+func printReviewSection(title, bookID string, reviews []review, n int, mode string) {
+	sorted := make([]review, len(reviews))
+	copy(sorted, reviews)
+
+	label := "Reviews"
+	switch mode {
+	case "best":
+		sort.SliceStable(sorted, func(i, j int) bool {
+			return sorted[i].Rating > sorted[j].Rating
+		})
+		label = "Best Reviews"
+	case "worst":
+		sort.SliceStable(sorted, func(i, j int) bool {
+			return sorted[i].Rating < sorted[j].Rating
+		})
+		label = "Worst Reviews"
+	}
+
+	if n > len(sorted) {
+		n = len(sorted)
+	}
+	selected := sorted[:n]
+
+	if title != "" {
+		fmt.Printf("%s for '%s'\n", label, title)
+	} else {
+		fmt.Printf("%s for book %s\n", label, bookID)
+	}
+	fmt.Println(strings.Repeat("=", 60))
+
+	for i, r := range selected {
+		if i > 0 {
+			fmt.Println(strings.Repeat("-", 60))
+		}
+
+		// Rating and reviewer.
+		if r.Rating > 0 {
+			stars := strings.Repeat("*", r.Rating)
+			fmt.Printf("  %s (%d/5)", stars, r.Rating)
+		} else {
+			fmt.Print("  (no rating)")
+		}
+		if r.ReviewerName != "" {
+			fmt.Printf(" - %s", r.ReviewerName)
+		}
+		fmt.Println()
+
+		// Date.
+		if r.Date != "" {
+			fmt.Printf("  %s\n", r.Date)
+		}
+
+		// Review text.
+		if r.Text != "" {
+			fmt.Println()
+			text := r.Text
+			if len(text) > 500 {
+				text = text[:500] + "..."
+			}
+			printWrapped(text, 70)
+		}
+	}
+
+	fmt.Println(strings.Repeat("=", 60))
+	fmt.Printf("Showing %d of %d reviews found\n", n, len(reviews))
+}

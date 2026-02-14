@@ -193,6 +193,17 @@ func runBookCommand(args []string) {
 		listIndex := flagInt(rest, "--list", "-l", 0)
 		cmdBookSimilar(bookID, limit, showLists, listIndex)
 
+	case "reviews":
+		if len(args) < 2 {
+			fatal("usage: goodreads book reviews <book-id> [--best N] [--worst N] [--limit N]")
+		}
+		bookID := args[1]
+		rest := args[2:]
+		bestN := flagInt(rest, "--best", "-b", 0)
+		worstN := flagInt(rest, "--worst", "-w", 0)
+		limit := flagInt(rest, "--limit", "-n", 5)
+		cmdBookReviews(bookID, bestN, worstN, limit)
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown book command: %s\n\n", args[0])
 		printBookUsage()
@@ -223,7 +234,8 @@ Commands:
   add <book-id> <shelf>    Add a book to a shelf
   remove <book-id> [shelf] Remove a book from a shelf (or all shelves)
   rate <book-id> <1-5>     Rate a book
-  similar <book-id>        Find similar books [--limit N] [--show-lists] [--list N]`)
+  similar <book-id>        Find similar books [--limit N] [--show-lists] [--list N]
+  reviews <book-id>        Show book reviews [--best N] [--worst N] [--limit N]`)
 }
 
 // runAuthorCommand dispatches author subcommands.
