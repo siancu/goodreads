@@ -18,7 +18,7 @@ A Go CLI tool for interacting with Goodreads (since Goodreads deprecated their A
   - `book.go` — book commands (search, show, add, remove, rate, similar)
   - `author.go` — author commands (search, show, books)
   - `user.go` — user commands (list, show, shelves, books, stats) and top-level stats
-  - `review.go` — book review commands (reviews with best/worst sorting)
+  - `review.go` — book review commands (reviews with best/worst sorting, --full, --review N)
 - **Authentication**: Login via Amazon SSO, cookies saved to `~/.goodreads-cookies.json`
 - **HTTP Client**: `net/http` with `net/http/cookiejar`
 - **HTML Parsing**: `github.com/PuerkitoBio/goquery` (CSS selectors, like BeautifulSoup)

@@ -102,7 +102,7 @@ export GOODREADS_PASSWORD="yourpassword"
 | `./goodreads book remove <book-id> [shelf]` | Remove a book from a shelf (or all shelves) |
 | `./goodreads book rate <book-id> <1-5>` | Rate a book |
 | `./goodreads book similar <book-id>` | Find similar books (`--limit N`, `--show-lists`, `--list N`) |
-| `./goodreads book reviews <book-id>` | Show book reviews (`--best N`, `--worst N`, `--limit N`) |
+| `./goodreads book reviews <book-id>` | Show book reviews (`--best N`, `--worst N`, `--limit N`, `--full`, `--review N`) |
 
 ### Authors
 

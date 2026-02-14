@@ -30,6 +30,7 @@ func TestParseReviews(t *testing.T) {
 	t.Run("single review with all fields", func(t *testing.T) {
 		html := `<html><body>
 			<article class="ReviewCard">
+				<a href="/review/show/12345">Like</a>
 				<div class="ReviewerProfile__name">Alice</div>
 				<span class="RatingStars RatingStars__small" aria-label="Rating 5 out of 5"></span>
 				<section class="ReviewCard__row">
@@ -47,6 +48,9 @@ func TestParseReviews(t *testing.T) {
 			t.Fatalf("got %d reviews, want 1", len(reviews))
 		}
 		r := reviews[0]
+		if r.ID != "12345" {
+			t.Errorf("ID = %q, want %q", r.ID, "12345")
+		}
 		if r.ReviewerName != "Alice" {
 			t.Errorf("ReviewerName = %q, want %q", r.ReviewerName, "Alice")
 		}
@@ -61,19 +65,22 @@ func TestParseReviews(t *testing.T) {
 		}
 	})
 
-	t.Run("multiple reviews", func(t *testing.T) {
+	t.Run("multiple reviews with IDs", func(t *testing.T) {
 		html := `<html><body>
 			<article class="ReviewCard">
+				<a href="/review/show/111">Like</a>
 				<div class="ReviewerProfile__name">Alice</div>
 				<span class="RatingStars" aria-label="Rating 5 out of 5"></span>
 				<section class="ReviewText"><span class="Formatted">Great!</span></section>
 			</article>
 			<article class="ReviewCard">
+				<a href="/review/show/222">Like</a>
 				<div class="ReviewerProfile__name">Bob</div>
 				<span class="RatingStars" aria-label="Rating 2 out of 5"></span>
 				<section class="ReviewText"><span class="Formatted">Not great.</span></section>
 			</article>
 			<article class="ReviewCard">
+				<a href="/review/show/333">Like</a>
 				<div class="ReviewerProfile__name">Carol</div>
 				<span class="RatingStars" aria-label="Rating 4 out of 5"></span>
 				<section class="ReviewText"><span class="Formatted">Pretty good.</span></section>
@@ -85,14 +92,32 @@ func TestParseReviews(t *testing.T) {
 		if len(reviews) != 3 {
 			t.Fatalf("got %d reviews, want 3", len(reviews))
 		}
-		if reviews[0].ReviewerName != "Alice" || reviews[0].Rating != 5 {
+		if reviews[0].ReviewerName != "Alice" || reviews[0].Rating != 5 || reviews[0].ID != "111" {
 			t.Errorf("reviews[0] = %+v", reviews[0])
 		}
-		if reviews[1].ReviewerName != "Bob" || reviews[1].Rating != 2 {
+		if reviews[1].ReviewerName != "Bob" || reviews[1].Rating != 2 || reviews[1].ID != "222" {
 			t.Errorf("reviews[1] = %+v", reviews[1])
 		}
-		if reviews[2].ReviewerName != "Carol" || reviews[2].Rating != 4 {
+		if reviews[2].ReviewerName != "Carol" || reviews[2].Rating != 4 || reviews[2].ID != "333" {
 			t.Errorf("reviews[2] = %+v", reviews[2])
+		}
+	})
+
+	t.Run("review without ID", func(t *testing.T) {
+		html := `<html><body>
+			<article class="ReviewCard">
+				<div class="ReviewerProfile__name">NoID</div>
+				<span class="RatingStars" aria-label="Rating 3 out of 5"></span>
+			</article>
+		</body></html>`
+		doc := docFromHTML(t, html)
+		reviews := parseReviews(doc)
+
+		if len(reviews) != 1 {
+			t.Fatalf("got %d reviews, want 1", len(reviews))
+		}
+		if reviews[0].ID != "" {
+			t.Errorf("ID = %q, want empty", reviews[0].ID)
 		}
 	})
 
