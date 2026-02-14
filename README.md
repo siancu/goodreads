@@ -103,6 +103,14 @@ export GOODREADS_PASSWORD="yourpassword"
 | `./goodreads book rate <book-id> <1-5>` | Rate a book |
 | `./goodreads book similar <book-id>` | Find similar books (`--limit N`, `--show-lists`, `--list N`) |
 
+### Authors
+
+| Command | Description |
+|---------|-------------|
+| `./goodreads author search <query>` | Search for authors (`--limit N`, default 10) |
+| `./goodreads author show <author-id>` | Show author bio, genres, website |
+| `./goodreads author books <author-id>` | List books by an author (`--limit N`, default 20) |
+
 ## Cookie Expiration
 
 Cookies expire periodically. If you get authentication errors, just run `./goodreads login` again.

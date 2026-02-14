@@ -26,6 +26,9 @@ func main() {
 	case "book":
 		runBookCommand(os.Args[2:])
 
+	case "author":
+		runAuthorCommand(os.Args[2:])
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", os.Args[1])
 		printUsage()
@@ -115,7 +118,8 @@ Commands:
   login     Log in to Goodreads
   logout    Log out (remove saved cookies)
   shelf     Manage shelves
-  book      Manage books`)
+  book      Manage books
+  author    Author information`)
 }
 
 // runBookCommand dispatches book subcommands.
@@ -208,6 +212,52 @@ Commands:
   remove <book-id> [shelf] Remove a book from a shelf (or all shelves)
   rate <book-id> <1-5>     Rate a book
   similar <book-id>        Find similar books [--limit N] [--show-lists] [--list N]`)
+}
+
+// runAuthorCommand dispatches author subcommands.
+func runAuthorCommand(args []string) {
+	if len(args) == 0 {
+		printAuthorUsage()
+		os.Exit(1)
+	}
+
+	switch args[0] {
+	case "search":
+		if len(args) < 2 {
+			fatal("usage: goodreads author search <query> [--limit N]")
+		}
+		query := args[1]
+		limit := flagInt(args[2:], "--limit", "-n", 10)
+		cmdAuthorSearch(query, limit)
+
+	case "show":
+		if len(args) < 2 {
+			fatal("usage: goodreads author show <author-id>")
+		}
+		cmdAuthorShow(args[1])
+
+	case "books":
+		if len(args) < 2 {
+			fatal("usage: goodreads author books <author-id> [--limit N]")
+		}
+		limit := flagInt(args[2:], "--limit", "-n", 20)
+		cmdAuthorBooks(args[1], limit)
+
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown author command: %s\n\n", args[0])
+		printAuthorUsage()
+		os.Exit(1)
+	}
+}
+
+func printAuthorUsage() {
+	fmt.Println(`Usage:
+  goodreads author <command> [arguments]
+
+Commands:
+  search <query>         Search for authors [--limit N]
+  show <author-id>       Show author bio
+  books <author-id>      List books by author [--limit N]`)
 }
 
 func printShelfUsage() {
