@@ -449,6 +449,63 @@ func cmdBookRate(bookID string, rating int) {
 	}
 }
 
+// normalizeStatus maps user-friendly status names to Goodreads shelf names.
+func normalizeStatus(status string) string {
+	switch strings.ToLower(status) {
+	case "reading", "currently-reading":
+		return "currently-reading"
+	case "read", "finished":
+		return "read"
+	case "to-read", "want-to-read":
+		return "to-read"
+	default:
+		return ""
+	}
+}
+
+// cmdBookStatus sets a book's reading status (currently-reading, read, to-read).
+func cmdBookStatus(bookID, status string) {
+	shelf := normalizeStatus(status)
+	if shelf == "" {
+		fatal("unknown status %q. Use: reading, read, or to-read", status)
+	}
+
+	userID := getUserID()
+	token, _ := getCSRFToken(userID)
+
+	bookTitle := fetchBookTitle(bookID)
+
+	client := newClient()
+	data := url.Values{
+		"book_id":            {bookID},
+		"name":               {shelf},
+		"authenticity_token": {token},
+	}
+
+	referer := fmt.Sprintf("%s/review/list/%s", baseURL, userID)
+	resp, err := doPostWithCSRF(client, baseURL+"/shelf/add_to_shelf", data, referer, token)
+	if err != nil {
+		fatal("updating book status: %v", err)
+	}
+	defer resp.Body.Close()
+
+	label := strings.ReplaceAll(shelf, "-", " ")
+	switch resp.StatusCode {
+	case 200:
+		if bookTitle != "" {
+			fmt.Printf("'%s' marked as %s.\n", bookTitle, label)
+		} else {
+			fmt.Printf("Book %s marked as %s.\n", bookID, label)
+		}
+	case 401:
+		fatal("not authorized. Try logging in again.")
+	case 404:
+		fatal("book %s not found", bookID)
+	default:
+		fatal("failed to update book status (HTTP %d)", resp.StatusCode)
+	}
+}
+
 // cmdBookSimilar finds similar books using Goodreads lists.
 func cmdBookSimilar(bookID string, limit int, showLists bool, listIndex int) {
 	client := newClient()

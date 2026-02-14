@@ -206,6 +206,12 @@ func runBookCommand(args []string) {
 		reviewIndex := flagInt(rest, "--review", "-r", 0)
 		cmdBookReviews(bookID, bestN, worstN, limit, full, reviewIndex)
 
+	case "status":
+		if len(args) < 3 {
+			fatal("usage: goodreads book status <book-id> <reading|read|to-read>")
+		}
+		cmdBookStatus(args[1], args[2])
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown book command: %s\n\n", args[0])
 		printBookUsage()
@@ -237,7 +243,8 @@ Commands:
   remove <book-id> [shelf] Remove a book from a shelf (or all shelves)
   rate <book-id> <1-5>     Rate a book
   similar <book-id>        Find similar books [--limit N] [--show-lists] [--list N]
-  reviews <book-id>        Show book reviews [--best N] [--worst N] [--limit N] [--full] [--review N]`)
+  reviews <book-id>        Show book reviews [--best N] [--worst N] [--limit N] [--full] [--review N]
+  status <book-id> <status> Set reading status (reading, read, to-read)`)
 }
 
 // runAuthorCommand dispatches author subcommands.

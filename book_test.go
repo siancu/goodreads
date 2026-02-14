@@ -149,3 +149,30 @@ func TestPickBestList(t *testing.T) {
 		}
 	})
 }
+
+func TestNormalizeStatus(t *testing.T) {
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{"reading", "reading", "currently-reading"},
+		{"currently-reading", "currently-reading", "currently-reading"},
+		{"read", "read", "read"},
+		{"finished", "finished", "read"},
+		{"to-read", "to-read", "to-read"},
+		{"want-to-read", "want-to-read", "to-read"},
+		{"case insensitive", "Reading", "currently-reading"},
+		{"unknown status", "dropped", ""},
+		{"empty string", "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := normalizeStatus(tt.input)
+			if got != tt.want {
+				t.Errorf("normalizeStatus(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}

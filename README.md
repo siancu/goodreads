@@ -103,6 +103,7 @@ export GOODREADS_PASSWORD="yourpassword"
 | `./goodreads book rate <book-id> <1-5>` | Rate a book |
 | `./goodreads book similar <book-id>` | Find similar books (`--limit N`, `--show-lists`, `--list N`) |
 | `./goodreads book reviews <book-id>` | Show book reviews (`--best N`, `--worst N`, `--limit N`, `--full`, `--review N`) |
+| `./goodreads book status <book-id> <status>` | Set reading status (`reading`, `read`, `to-read`) |
 
 ### Authors
 

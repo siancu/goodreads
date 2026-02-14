@@ -15,7 +15,7 @@ A Go CLI tool for interacting with Goodreads (since Goodreads deprecated their A
   - `client.go` — HTTP client, cookie persistence, HTML parsing helpers
   - `auth.go` — login/logout commands
   - `shelf.go` — shelf management commands (list, show, add, delete)
-  - `book.go` — book commands (search, show, add, remove, rate, similar)
+  - `book.go` — book commands (search, show, add, remove, rate, similar, status)
   - `author.go` — author commands (search, show, books)
   - `user.go` — user commands (list, show, shelves, books, stats) and top-level stats
   - `review.go` — book review commands (reviews with best/worst sorting, --full, --review N)
