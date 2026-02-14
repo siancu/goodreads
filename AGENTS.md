@@ -107,6 +107,20 @@ Current external dependencies:
 
 ## Testing
 
+### Unit tests
+
+```bash
+go test -v ./...
+```
+
+Test files follow Go conventions (`*_test.go` alongside source):
+- `main_test.go` — flag parsing (`hasFlag`, `flagInt`, `parseLoginFlags`)
+- `shelf_test.go` — `parseBooksFromHTML` with HTML fixtures
+- `client_test.go` — `csrfToken`, `extractFormData`, `resolveURL`
+- `book_test.go` — `printWrapped`, `pickBestList`
+
+### Manual integration tests
+
 First login, then run commands:
 
 ```bash
