@@ -28,6 +28,8 @@ curl -L https://github.com/siancu/goodreads-go/releases/latest/download/goodread
 sudo mv goodreads /usr/local/bin/
 ```
 
+**Windows**: download the `.zip` from the [Releases page](https://github.com/siancu/goodreads-go/releases) and add `goodreads.exe` to your PATH.
+
 ### Build from source
 
 Requires [Go](https://go.dev/) 1.25+.
