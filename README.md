@@ -111,6 +111,23 @@ export GOODREADS_PASSWORD="yourpassword"
 | `./goodreads author show <author-id>` | Show author bio, genres, website |
 | `./goodreads author books <author-id>` | List books by an author (`--limit N`, default 20) |
 
+### Users
+
+| Command | Description |
+|---------|-------------|
+| `./goodreads user list` | List users you follow |
+| `./goodreads user show <user-id>` | Show user profile |
+| `./goodreads user shelves <user-id>` | List a user's shelves |
+| `./goodreads user books <user-id>` | Show a user's books (`--shelf NAME`, `--limit N`) |
+| `./goodreads user stats <user-id>` | Show a user's reading stats |
+
+### Statistics
+
+| Command | Description |
+|---------|-------------|
+| `./goodreads stats` | Show your reading statistics |
+| `./goodreads stats <year>` | Show stats for a specific year |
+
 ## Cookie Expiration
 
 Cookies expire periodically. If you get authentication errors, just run `./goodreads login` again.

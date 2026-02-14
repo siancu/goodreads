@@ -29,6 +29,16 @@ func main() {
 	case "author":
 		runAuthorCommand(os.Args[2:])
 
+	case "user":
+		runUserCommand(os.Args[2:])
+
+	case "stats":
+		yearFilter := ""
+		if len(os.Args) >= 3 {
+			yearFilter = os.Args[2]
+		}
+		cmdStats(yearFilter)
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %s\n\n", os.Args[1])
 		printUsage()
@@ -119,7 +129,9 @@ Commands:
   logout    Log out (remove saved cookies)
   shelf     Manage shelves
   book      Manage books
-  author    Author information`)
+  author    Author information
+  user      View user information
+  stats     Show your reading statistics`)
 }
 
 // runBookCommand dispatches book subcommands.
@@ -258,6 +270,74 @@ Commands:
   search <query>         Search for authors [--limit N]
   show <author-id>       Show author bio
   books <author-id>      List books by author [--limit N]`)
+}
+
+// runUserCommand dispatches user subcommands.
+func runUserCommand(args []string) {
+	if len(args) == 0 {
+		printUserUsage()
+		os.Exit(1)
+	}
+
+	switch args[0] {
+	case "list":
+		cmdUserList()
+
+	case "show":
+		if len(args) < 2 {
+			fatal("usage: goodreads user show <user-id>")
+		}
+		cmdUserShow(args[1])
+
+	case "shelves":
+		if len(args) < 2 {
+			fatal("usage: goodreads user shelves <user-id>")
+		}
+		cmdUserShelves(args[1])
+
+	case "books":
+		if len(args) < 2 {
+			fatal("usage: goodreads user books <user-id> [--shelf NAME] [--limit N]")
+		}
+		uid := args[1]
+		rest := args[2:]
+		shelf := flagString(rest, "--shelf", "-s", "read")
+		limit := flagInt(rest, "--limit", "-n", 0)
+		cmdUserBooks(uid, shelf, limit)
+
+	case "stats":
+		if len(args) < 2 {
+			fatal("usage: goodreads user stats <user-id>")
+		}
+		cmdUserStats(args[1])
+
+	default:
+		fmt.Fprintf(os.Stderr, "Unknown user command: %s\n\n", args[0])
+		printUserUsage()
+		os.Exit(1)
+	}
+}
+
+// flagString extracts a string flag value from args, returning defaultVal if not found.
+func flagString(args []string, long, short, defaultVal string) string {
+	for i, a := range args {
+		if (a == long || a == short) && i+1 < len(args) {
+			return args[i+1]
+		}
+	}
+	return defaultVal
+}
+
+func printUserUsage() {
+	fmt.Println(`Usage:
+  goodreads user <command> [arguments]
+
+Commands:
+  list                     List users you follow
+  show <user-id>           Show user profile
+  shelves <user-id>        List user's shelves
+  books <user-id>          Show user's books [--shelf NAME] [--limit N]
+  stats <user-id>          Show user's reading stats`)
 }
 
 func printShelfUsage() {
