@@ -236,6 +236,11 @@ func printReviewSection(title, bookID string, reviews []review, n int, mode stri
 			}
 			printWrapped(text, 70)
 		}
+
+		// Review URL.
+		if r.ID != "" {
+			fmt.Printf("  %s/review/show/%s\n", baseURL, r.ID)
+		}
 	}
 
 	fmt.Println(strings.Repeat("=", 60))
