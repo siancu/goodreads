@@ -136,6 +136,11 @@ Cookies expire periodically. If you get authentication errors, just run `./goodr
 
 This tool uses undocumented Goodreads web endpoints. It may break if Goodreads changes their website. Use at your own risk.
 
+- **No official API**: Goodreads deprecated their public API in December 2020 and has not provided an alternative. This tool scrapes the website directly.
+- **Account risk**: Automated access likely violates Goodreads' Terms of Service. Your account could be suspended or banned.
+- **Breakage**: Any change to Goodreads' HTML structure or login flow can break this tool without warning.
+- **Credentials**: Your email and password are sent directly to Amazon/Goodreads for authentication. Cookies are stored locally in `~/.goodreads-cookies.json`.
+
 ## License
 
 MIT

@@ -16,6 +16,8 @@ A Go CLI tool for interacting with Goodreads (since Goodreads deprecated their A
   - `auth.go` — login/logout commands
   - `shelf.go` — shelf management commands (list, show, add, delete)
   - `book.go` — book commands (search, show, add, remove, rate, similar)
+  - `author.go` — author commands (search, show, books)
+  - `user.go` — user commands (list, show, shelves, books, stats) and top-level stats
 - **Authentication**: Login via Amazon SSO, cookies saved to `~/.goodreads-cookies.json`
 - **HTTP Client**: `net/http` with `net/http/cookiejar`
 - **HTML Parsing**: `github.com/PuerkitoBio/goquery` (CSS selectors, like BeautifulSoup)
@@ -131,6 +133,8 @@ Test files follow Go conventions (`*_test.go` alongside source):
 - `shelf_test.go` — `parseBooksFromHTML` with HTML fixtures
 - `client_test.go` — `csrfToken`, `extractFormData`, `resolveURL`
 - `book_test.go` — `printWrapped`, `pickBestList`
+- `author_test.go` — `parseAuthorSearchResults`, `parseAuthorInfo`, `parseAuthorBooks`
+- `user_test.go` — `parseUserList`, `parseUserProfile`, `parseShelves`, `parseReadingStats`, `formatCommas`, `flagString`
 
 ### Manual integration tests
 
@@ -141,5 +145,14 @@ First login, then run commands:
 ./goodreads shelf list
 ./goodreads book search "project hail mary"
 ./goodreads book show 54493401
+./goodreads author search "Adrian Tchaikovsky"
+./goodreads author show 1445909
+./goodreads author books 1445909
+./goodreads user list
+./goodreads user show <user-id>
+./goodreads user shelves <user-id>
+./goodreads user books <user-id> --shelf read --limit 3
+./goodreads stats
+./goodreads stats 2023
 ./goodreads logout
 ```
