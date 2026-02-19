@@ -506,6 +506,80 @@ func cmdBookStatus(bookID, status string) {
 	}
 }
 
+// validateProgressArgs checks that exactly one of page/percent is set
+// and that values are in valid ranges. Returns an error message or "".
+func validateProgressArgs(page, percent int) string {
+	if page == 0 && percent == 0 {
+		return "specify --page or --percent"
+	}
+	if page != 0 && percent != 0 {
+		return "specify --page or --percent, not both"
+	}
+	if page < 0 {
+		return "page must be a positive number"
+	}
+	if percent < 0 || percent > 100 {
+		return "percent must be between 1 and 100"
+	}
+	return ""
+}
+
+// cmdBookProgress updates reading progress for a book.
+// Accepts either a page number or a percentage (one must be provided).
+// An optional comment can be included with the progress update.
+func cmdBookProgress(bookID string, page, percent int, comment string) {
+	if msg := validateProgressArgs(page, percent); msg != "" {
+		fatal(msg)
+	}
+
+	userID := getUserID()
+	token, _ := getCSRFToken(userID)
+
+	bookTitle := fetchBookTitle(bookID)
+
+	client := newClient()
+	data := url.Values{
+		"user_status[book_id]": {bookID},
+		"authenticity_token":   {token},
+	}
+	if page != 0 {
+		data.Set("user_status[page]", fmt.Sprintf("%d", page))
+	} else {
+		data.Set("user_status[percent]", fmt.Sprintf("%d", percent))
+	}
+	if comment != "" {
+		data.Set("user_status[body]", comment)
+	}
+
+	referer := fmt.Sprintf("%s/book/show/%s", baseURL, bookID)
+	resp, err := doPostWithCSRF(client, baseURL+"/user_status.json", data, referer, token)
+	if err != nil {
+		fatal("updating progress: %v", err)
+	}
+	defer resp.Body.Close()
+
+	switch resp.StatusCode {
+	case 200, 201:
+		label := bookID
+		if bookTitle != "" {
+			label = "'" + bookTitle + "'"
+		}
+		if page != 0 {
+			fmt.Printf("%s progress updated to page %d.\n", label, page)
+		} else {
+			fmt.Printf("%s progress updated to %d%%.\n", label, percent)
+		}
+	case 401:
+		fatal("not authorized. Try logging in again.")
+	case 404:
+		fatal("book %s not found. Set status to 'reading' first.", bookID)
+	case 422:
+		fatal("invalid progress. Make sure the book is on your 'currently reading' shelf.")
+	default:
+		fatal("failed to update progress (HTTP %d)", resp.StatusCode)
+	}
+}
+
 // cmdBookSimilar finds similar books using Goodreads lists.
 func cmdBookSimilar(bookID string, limit int, showLists bool, listIndex int) {
 	client := newClient()

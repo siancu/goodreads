@@ -212,6 +212,17 @@ func runBookCommand(args []string) {
 		}
 		cmdBookStatus(args[1], args[2])
 
+	case "progress":
+		if len(args) < 2 {
+			fatal("usage: goodreads book progress <book-id> --page N | --percent N [--comment TEXT]")
+		}
+		bookID := args[1]
+		rest := args[2:]
+		page := flagInt(rest, "--page", "-p", 0)
+		pct := flagInt(rest, "--percent", "--percent", 0)
+		comment := flagString(rest, "--comment", "-c", "")
+		cmdBookProgress(bookID, page, pct, comment)
+
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown book command: %s\n\n", args[0])
 		printBookUsage()
@@ -244,7 +255,8 @@ Commands:
   rate <book-id> <1-5>     Rate a book
   similar <book-id>        Find similar books [--limit N] [--show-lists] [--list N]
   reviews <book-id>        Show book reviews [--best N] [--worst N] [--limit N] [--full] [--review N]
-  status <book-id> <status> Set reading status (reading, read, to-read)`)
+  status <book-id> <status> Set reading status (reading, read, to-read)
+  progress <book-id>        Update reading progress (--page N or --percent N) [--comment TEXT]`)
 }
 
 // runAuthorCommand dispatches author subcommands.

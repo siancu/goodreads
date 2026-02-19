@@ -15,7 +15,7 @@ A Go CLI tool for interacting with Goodreads (since Goodreads deprecated their A
   - `client.go` — HTTP client, cookie persistence, HTML parsing helpers
   - `auth.go` — login/logout commands
   - `shelf.go` — shelf management commands (list, show, add, delete)
-  - `book.go` — book commands (search, show, add, remove, rate, similar, status)
+  - `book.go` — book commands (search, show, add, remove, rate, similar, status, progress)
   - `author.go` — author commands (search, show, books)
   - `user.go` — user commands (list, show, shelves, books, stats) and top-level stats
   - `review.go` — book review commands (reviews with best/worst sorting, --full, --review N)
@@ -133,7 +133,7 @@ Test files follow Go conventions (`*_test.go` alongside source):
 - `main_test.go` — flag parsing (`hasFlag`, `flagInt`, `parseLoginFlags`)
 - `shelf_test.go` — `parseBooksFromHTML` with HTML fixtures
 - `client_test.go` — `csrfToken`, `extractFormData`, `resolveURL`
-- `book_test.go` — `printWrapped`, `pickBestList`
+- `book_test.go` — `printWrapped`, `pickBestList`, `validateProgressArgs`
 - `author_test.go` — `parseAuthorSearchResults`, `parseAuthorInfo`, `parseAuthorBooks`
 - `user_test.go` — `parseUserList`, `parseUserProfile`, `parseShelves`, `parseReadingStats`, `formatCommas`, `flagString`
 - `review_test.go` — `parseStarRating`, `parseReviews`
@@ -148,6 +148,8 @@ First login, then run commands:
 ./goodreads book search "project hail mary"
 ./goodreads book show 54493401
 ./goodreads book reviews 54493401 --best 3
+./goodreads book progress 54493401 --page 150
+./goodreads book progress 54493401 --percent 45
 ./goodreads author search "Adrian Tchaikovsky"
 ./goodreads author show 1445909
 ./goodreads author books 1445909

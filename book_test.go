@@ -150,6 +150,35 @@ func TestPickBestList(t *testing.T) {
 	})
 }
 
+func TestValidateProgressArgs(t *testing.T) {
+	tests := []struct {
+		name    string
+		page    int
+		percent int
+		wantErr string
+	}{
+		{"page only", 42, 0, ""},
+		{"percent only", 0, 50, ""},
+		{"neither specified", 0, 0, "specify --page or --percent"},
+		{"both specified", 42, 50, "specify --page or --percent, not both"},
+		{"negative page", -1, 0, "page must be a positive number"},
+		{"percent too high", 0, 101, "percent must be between 1 and 100"},
+		{"percent negative", 0, -5, "percent must be between 1 and 100"},
+		{"percent at 100", 0, 100, ""},
+		{"percent at 1", 0, 1, ""},
+		{"page at 1", 1, 0, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := validateProgressArgs(tt.page, tt.percent)
+			if got != tt.wantErr {
+				t.Errorf("validateProgressArgs(%d, %d) = %q, want %q", tt.page, tt.percent, got, tt.wantErr)
+			}
+		})
+	}
+}
+
 func TestNormalizeStatus(t *testing.T) {
 	tests := []struct {
 		name  string
