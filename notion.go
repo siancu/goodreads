@@ -78,12 +78,6 @@ func createNotionDatabase(parentPageID, token string) (string, error) {
 			"Shelves": map[string]interface{}{
 				"multi_select": map[string]interface{}{},
 			},
-			"Date Read": map[string]interface{}{
-				"date": map[string]interface{}{},
-			},
-			"Date Added": map[string]interface{}{
-				"date": map[string]interface{}{},
-			},
 			"Goodreads URL": map[string]interface{}{
 				"url": map[string]interface{}{},
 			},
@@ -142,18 +136,6 @@ func buildNotionPagePayload(dbID string, b exportBook) map[string]interface{} {
 		}
 	}
 
-	if isoDate := parseGoodreadsDate(b.DateRead); isoDate != "" {
-		properties["Date Read"] = map[string]interface{}{
-			"date": map[string]interface{}{"start": isoDate},
-		}
-	}
-
-	if isoDate := parseGoodreadsDate(b.DateAdded); isoDate != "" {
-		properties["Date Added"] = map[string]interface{}{
-			"date": map[string]interface{}{"start": isoDate},
-		}
-	}
-
 	if b.URL != "" {
 		properties["Goodreads URL"] = map[string]interface{}{
 			"url": b.URL,
@@ -169,6 +151,12 @@ func buildNotionPagePayload(dbID string, b exportBook) map[string]interface{} {
 
 	if b.CoverURL != "" {
 		page["cover"] = map[string]interface{}{
+			"type": "external",
+			"external": map[string]string{
+				"url": b.CoverURL,
+			},
+		}
+		page["icon"] = map[string]interface{}{
 			"type": "external",
 			"external": map[string]string{
 				"url": b.CoverURL,
