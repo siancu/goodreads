@@ -21,10 +21,15 @@ func TestParseBooksFromHTML(t *testing.T) {
 	t.Run("single book with all fields", func(t *testing.T) {
 		html := `<table>
 		<tr class="bookalike review">
-			<td class="field title"><a title="Project Hail Mary">Project Hail Mary</a></td>
+			<td class="field title"><a href="/book/show/54493401-project-hail-mary" title="Project Hail Mary">Project Hail Mary</a></td>
 			<td class="field author"><a>Weir, Andy</a></td>
 			<td class="field rating"><span class="staticStars" title="really liked it"></span></td>
 			<td class="field avg_rating"><div class="value">4.52</div></td>
+			<td class="field cover"><img src="https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/54493401._SX98_.jpg" /></td>
+			<td class="field shelves">
+				<a class="actionLinkLite" href="/review/list/12345?shelf=read">read</a>
+				<a class="actionLinkLite" href="/review/list/12345?shelf=top-5">top-5</a>
+			</td>
 			<td class="field date_read"><span class="date_read_value">Jan 15, 2024</span></td>
 			<td class="field date_added"><span class="date_added_value">Dec 01, 2023</span></td>
 		</tr>
@@ -37,6 +42,9 @@ func TestParseBooksFromHTML(t *testing.T) {
 			t.Fatalf("got %d books, want 1", len(books))
 		}
 		b := books[0]
+		if b.ID != "54493401" {
+			t.Errorf("ID = %q, want %q", b.ID, "54493401")
+		}
 		if b.Title != "Project Hail Mary" {
 			t.Errorf("Title = %q, want %q", b.Title, "Project Hail Mary")
 		}
@@ -48,6 +56,12 @@ func TestParseBooksFromHTML(t *testing.T) {
 		}
 		if b.AvgRating != "4.52" {
 			t.Errorf("AvgRating = %q, want %q", b.AvgRating, "4.52")
+		}
+		if b.CoverURL != "https://i.gr-assets.com/images/S/compressed.photo.goodreads.com/books/54493401._SX98_.jpg" {
+			t.Errorf("CoverURL = %q, want cover URL", b.CoverURL)
+		}
+		if len(b.Shelves) != 2 || b.Shelves[0] != "read" || b.Shelves[1] != "top-5" {
+			t.Errorf("Shelves = %v, want [read top-5]", b.Shelves)
 		}
 		if b.DateRead != "Jan 15, 2024" {
 			t.Errorf("DateRead = %q, want %q", b.DateRead, "Jan 15, 2024")
@@ -160,6 +174,9 @@ func TestParseBooksFromHTML(t *testing.T) {
 			t.Fatalf("got %d books, want 1", len(books))
 		}
 		b := books[0]
+		if b.ID != "" {
+			t.Errorf("ID = %q, want empty", b.ID)
+		}
 		if b.Author != "" {
 			t.Errorf("Author = %q, want empty", b.Author)
 		}
@@ -168,6 +185,12 @@ func TestParseBooksFromHTML(t *testing.T) {
 		}
 		if b.AvgRating != "" {
 			t.Errorf("AvgRating = %q, want empty", b.AvgRating)
+		}
+		if b.CoverURL != "" {
+			t.Errorf("CoverURL = %q, want empty", b.CoverURL)
+		}
+		if len(b.Shelves) != 0 {
+			t.Errorf("Shelves = %v, want empty", b.Shelves)
 		}
 	})
 }

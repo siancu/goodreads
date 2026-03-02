@@ -124,6 +124,34 @@ export GOODREADS_PASSWORD="yourpassword"
 | `./goodreads user books <user-id>` | Show a user's books (`--shelf NAME`, `--limit N`) |
 | `./goodreads user stats <user-id>` | Show a user's reading stats |
 
+### Export
+
+| Command | Description |
+|---------|-------------|
+| `./goodreads export --json` | Export all books as JSON to stdout |
+| `./goodreads export --notion --parent <page-id>` | Export to a Notion database |
+
+#### Notion Export
+
+To export your books to a Notion database:
+
+1. Create a [Notion integration](https://www.notion.so/my-integrations):
+   - Click "New integration", give it a name (e.g. "Goodreads Import")
+   - Copy the "Internal Integration Secret" (starts with `ntn_` or `secret_`)
+
+2. Share a Notion page with your integration:
+   - Open the page where you want the database created
+   - Click the `...` menu → "Connections" → find your integration → "Confirm"
+   - Copy the page ID from the URL: `notion.so/Your-Page-**abc123def456**` (the 32-char hex string)
+
+3. Run the export:
+   ```bash
+   export NOTION_TOKEN=ntn_your_token_here
+   ./goodreads export --notion --parent abc123def456
+   ```
+
+The command creates a "Goodreads Books" database with: title, author, rating (with stars), shelves as tags, book covers, dates, and a Goodreads link.
+
 ### Statistics
 
 | Command | Description |

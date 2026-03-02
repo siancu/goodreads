@@ -32,6 +32,9 @@ func main() {
 	case "user":
 		runUserCommand(os.Args[2:])
 
+	case "export":
+		runExportCommand(os.Args[2:])
+
 	case "stats":
 		yearFilter := ""
 		if len(os.Args) >= 3 {
@@ -131,7 +134,8 @@ Commands:
   book      Manage books
   author    Author information
   user      View user information
-  stats     Show your reading statistics`)
+  stats     Show your reading statistics
+  export    Export books (JSON or Notion)`)
 }
 
 // runBookCommand dispatches book subcommands.

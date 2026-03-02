@@ -14,10 +14,13 @@ import (
 // book holds data parsed from a shelf's book table row.
 // Fields are optional — not every shelf page includes all columns.
 type book struct {
+	ID        string   // Goodreads book ID (from title link href)
 	Title     string
 	Author    string
 	Rating    string // user's rating (e.g. "really liked it")
 	AvgRating string // community average (e.g. "4.52")
+	CoverURL  string   // cover image URL
+	Shelves   []string // shelf names this book appears on
 	DateRead  string
 	DateAdded string
 }
@@ -30,14 +33,32 @@ func parseBooksFromHTML(doc *goquery.Document) []book {
 	doc.Find("tr.bookalike.review").Each(func(_ int, row *goquery.Selection) {
 		b := book{}
 
-		// Title: prefer the title attribute (full title), fall back to link text.
+		// Title and book ID: prefer the title attribute (full title), fall back to link text.
 		if el := row.Find("td.field.title a").First(); el.Length() > 0 {
 			if title, ok := el.Attr("title"); ok && strings.TrimSpace(title) != "" {
 				b.Title = strings.TrimSpace(title)
 			} else {
 				b.Title = strings.TrimSpace(el.Text())
 			}
+			if href, ok := el.Attr("href"); ok {
+				if m := reBookID.FindStringSubmatch(href); m != nil {
+					b.ID = m[1]
+				}
+			}
 		}
+
+		// Cover image URL.
+		if el := row.Find("td.field.cover img").First(); el.Length() > 0 {
+			b.CoverURL, _ = el.Attr("src")
+		}
+
+		// Shelves this book belongs to.
+		row.Find("td.field.shelves a").Each(func(_ int, s *goquery.Selection) {
+			name := strings.TrimSpace(s.Text())
+			if name != "" && name != "[edit]" {
+				b.Shelves = append(b.Shelves, name)
+			}
+		})
 
 		// Author: Goodreads sometimes uses "Last, First" — flip it.
 		if el := row.Find("td.field.author a").First(); el.Length() > 0 {
