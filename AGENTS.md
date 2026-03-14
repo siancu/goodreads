@@ -19,8 +19,7 @@ A Go CLI tool for interacting with Goodreads (since Goodreads deprecated their A
   - `author.go` — author commands (search, show, books)
   - `user.go` — user commands (list, show, shelves, books, stats) and top-level stats
   - `review.go` — book review commands (reviews with best/worst sorting, --full, --review N)
-  - `export.go` — export commands (JSON export, Notion integration helpers)
-  - `notion.go` — Notion API integration (database creation, page creation)
+  - `export.go` — export commands (JSON export)
 - **Authentication**: Login via Amazon SSO, cookies saved to `~/.goodreads-cookies.json`
 - **HTTP Client**: `net/http` with `net/http/cookiejar`
 - **HTML Parsing**: `github.com/PuerkitoBio/goquery` (CSS selectors, like BeautifulSoup)
@@ -114,15 +113,6 @@ func cmdShelfList() {
 | `ratingToStars(avgRating)` | Convert numeric rating to star display |
 | `upscaleCoverURL(url)` | Replace thumbnail size marker with larger size |
 
-### Notion Helpers (notion.go)
-
-| Function | Purpose |
-|----------|---------|
-| `notionRequest(method, path, body, token)` | Generic Notion API caller |
-| `createNotionDatabase(parentPageID, token)` | Create database with book schema |
-| `buildNotionPagePayload(dbID, book)` | Build Notion page JSON (pure, testable) |
-| `createNotionPage(dbID, book, token)` | Create one page in the database |
-
 ### Finding Goodreads Endpoints
 
 1. Open Chrome DevTools → Network tab
@@ -182,6 +172,6 @@ First login, then run commands:
 ./goodreads stats
 ./goodreads stats 2023
 ./goodreads export --json > /tmp/books.json
-./goodreads export --notion --parent <page-id>
+./goodreads export --json --shelf read --shelf to-read --shelf currently-reading > /tmp/books.json
 ./goodreads logout
 ```

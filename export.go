@@ -14,10 +14,14 @@ import (
 // reCoverSize matches Goodreads cover image size markers like ._SX50_, ._SY75_.
 var reCoverSize = regexp.MustCompile(`\._S[XY]\d+_`)
 
+// reSeries matches a trailing parenthetical containing a series reference like "(Culture, #5)".
+var reSeries = regexp.MustCompile(`\s*\(([^)]*#\d+[^)]*)\)\s*$`)
+
 // exportBook is the JSON-serializable representation of a book for export.
 type exportBook struct {
 	ID        string   `json:"id"`
 	Title     string   `json:"title"`
+	Series    string   `json:"series,omitempty"`
 	Author    string   `json:"author"`
 	AvgRating string   `json:"avg_rating"`
 	CoverURL  string   `json:"cover_url"`
@@ -27,9 +31,21 @@ type exportBook struct {
 	URL       string   `json:"url"`
 }
 
-// collectAllBooks fetches all books across all shelves for the given user,
-// deduplicating by book ID and merging shelf membership.
-func collectAllBooks(userID string) []exportBook {
+// extractSeries splits a title like "Excession (Culture, #5)" into
+// clean title "Excession" and series "Culture, #5".
+// If no series pattern is found, returns the original title and empty series.
+func extractSeries(title string) (string, string) {
+	m := reSeries.FindStringSubmatch(title)
+	if m == nil {
+		return title, ""
+	}
+	clean := strings.TrimSpace(reSeries.ReplaceAllString(title, ""))
+	return clean, m[1]
+}
+
+// collectAllBooks fetches books from the given shelves (or all shelves if none specified)
+// for the given user, deduplicating by book ID and merging shelf membership.
+func collectAllBooks(userID string, filterShelves []string) []exportBook {
 	client := newClient()
 
 	// Fetch shelf list page to get shelf names.
@@ -51,8 +67,25 @@ func collectAllBooks(userID string) []exportBook {
 		fatal("no shelves found. Check if your cookies are valid.")
 	}
 
+	// Filter to requested shelves if specified.
+	if len(filterShelves) > 0 {
+		filterSet := make(map[string]bool, len(filterShelves))
+		for _, s := range filterShelves {
+			filterSet[s] = true
+		}
+		var filtered []shelfEntry
+		for _, shelf := range shelfEntries {
+			if filterSet[shelf.Name] {
+				filtered = append(filtered, shelf)
+			}
+		}
+		if len(filtered) == 0 {
+			fatal("none of the requested shelves were found")
+		}
+		shelfEntries = filtered
+	}
+
 	// Collect books from each shelf.
-	type bookKey struct{}
 	seen := make(map[string]int) // book ID -> index in result
 	var result []exportBook
 
@@ -110,10 +143,12 @@ func collectAllBooks(userID string) []exportBook {
 					if len(shelves) == 0 {
 						shelves = []string{shelf.Name}
 					}
+					cleanTitle, series := extractSeries(b.Title)
 					seen[b.ID] = len(result)
 					result = append(result, exportBook{
 						ID:        b.ID,
-						Title:     b.Title,
+						Title:     cleanTitle,
+						Series:    series,
 						Author:    b.Author,
 						AvgRating: b.AvgRating,
 						CoverURL:  upscaleCoverURL(b.CoverURL),
@@ -176,10 +211,12 @@ func deduplicateBooks(shelfBooks map[string][]book) []exportBook {
 					eb.DateAdded = b.DateAdded
 				}
 			} else {
+				cleanTitle, series := extractSeries(b.Title)
 				seen[b.ID] = len(result)
 				result = append(result, exportBook{
 					ID:        b.ID,
-					Title:     b.Title,
+					Title:     cleanTitle,
+					Series:    series,
 					Author:    b.Author,
 					AvgRating: b.AvgRating,
 					CoverURL:  upscaleCoverURL(b.CoverURL),
@@ -196,8 +233,11 @@ func deduplicateBooks(shelfBooks map[string][]book) []exportBook {
 }
 
 // cmdExportJSON collects all books and outputs JSON to stdout.
-func cmdExportJSON(userID string) {
-	books := collectAllBooks(userID)
+func cmdExportJSON(userID string, shelves []string, limit int) {
+	books := collectAllBooks(userID, shelves)
+	if limit > 0 && limit < len(books) {
+		books = books[:limit]
+	}
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(books); err != nil {
@@ -240,28 +280,28 @@ func ratingToStars(avgRating string) string {
 	return fmt.Sprintf("%s %s", avgRating, stars)
 }
 
+// flagStrings collects all values for a repeated flag (e.g. --shelf a --shelf b).
+func flagStrings(args []string, long, short string) []string {
+	var result []string
+	for i, a := range args {
+		if (a == long || a == short) && i+1 < len(args) {
+			result = append(result, args[i+1])
+		}
+	}
+	return result
+}
+
 // runExportCommand parses flags and dispatches the export subcommand.
 func runExportCommand(args []string) {
 	jsonMode := hasFlag(args, "--json", "-j")
-	notionMode := hasFlag(args, "--notion", "-N")
-	parentID := flagString(args, "--parent", "-P", "")
-	token := flagString(args, "--token", "-t", "")
-	if token == "" {
-		token = os.Getenv("NOTION_TOKEN")
-	}
 
 	userID := getUserID()
 
+	limit := flagInt(args, "--limit", "-l", 0)
+	shelves := flagStrings(args, "--shelf", "-s")
+
 	if jsonMode {
-		cmdExportJSON(userID)
-	} else if notionMode {
-		if parentID == "" {
-			fatal("--parent is required for Notion export. Provide the parent page ID.")
-		}
-		if token == "" {
-			fatal("Notion token required. Set NOTION_TOKEN env var or use --token.")
-		}
-		cmdExportNotion(userID, parentID, token)
+		cmdExportJSON(userID, shelves, limit)
 	} else {
 		printExportUsage()
 		os.Exit(1)
@@ -270,17 +310,14 @@ func runExportCommand(args []string) {
 
 func printExportUsage() {
 	fmt.Println(`Usage:
-  goodreads export <mode> [options]
+  goodreads export [options]
 
-Modes:
+Options:
   --json, -j                    Export all books as JSON to stdout
-  --notion, -N                  Export to a Notion database
-
-Notion options:
-  --parent, -P <page-id>       Parent page ID for the Notion database (required)
-  --token, -t <token>          Notion integration token (or set NOTION_TOKEN env var)
+  --shelf, -s <name>            Only export from this shelf (repeatable)
+  --limit, -l <n>               Limit number of books exported
 
 Examples:
   goodreads export --json > books.json
-  goodreads export --notion --parent abc123def456`)
+  goodreads export --json --shelf read --shelf to-read --shelf currently-reading`)
 }

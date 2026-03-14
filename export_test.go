@@ -79,6 +79,34 @@ func TestUpscaleCoverURL(t *testing.T) {
 	}
 }
 
+func TestExtractSeries(t *testing.T) {
+	tests := []struct {
+		name       string
+		input      string
+		wantTitle  string
+		wantSeries string
+	}{
+		{"simple series", "Excession (Culture, #5)", "Excession", "Culture, #5"},
+		{"series with semicolon", "Snuff (Discworld, #39; City Watch, #8)", "Snuff", "Discworld, #39; City Watch, #8"},
+		{"multiple series", "Gridlinked (Agent Cormac #1, Polity Universe #3)", "Gridlinked", "Agent Cormac #1, Polity Universe #3"},
+		{"no series", "To Kill a Mockingbird", "To Kill a Mockingbird", ""},
+		{"parens without series number", "A Book (Some Subtitle)", "A Book (Some Subtitle)", ""},
+		{"empty string", "", "", ""},
+		{"series #1", "Children of Time (Children of Time, #1)", "Children of Time", "Children of Time, #1"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotTitle, gotSeries := extractSeries(tt.input)
+			if gotTitle != tt.wantTitle {
+				t.Errorf("extractSeries(%q) title = %q, want %q", tt.input, gotTitle, tt.wantTitle)
+			}
+			if gotSeries != tt.wantSeries {
+				t.Errorf("extractSeries(%q) series = %q, want %q", tt.input, gotSeries, tt.wantSeries)
+			}
+		})
+	}
+}
+
 func TestDeduplicateBooks(t *testing.T) {
 	t.Run("merges shelves for same book", func(t *testing.T) {
 		shelfBooks := map[string][]book{
@@ -171,4 +199,34 @@ func TestDeduplicateBooks(t *testing.T) {
 			t.Errorf("URL = %q, want %q", result[0].URL, want)
 		}
 	})
+}
+
+func TestFlagStrings(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+		want []string
+	}{
+		{"single long flag", []string{"--shelf", "read"}, []string{"read"}},
+		{"single short flag", []string{"-s", "read"}, []string{"read"}},
+		{"multiple flags", []string{"--shelf", "read", "--shelf", "to-read", "--shelf", "currently-reading"}, []string{"read", "to-read", "currently-reading"}},
+		{"mixed long and short", []string{"--shelf", "read", "-s", "to-read"}, []string{"read", "to-read"}},
+		{"no flags", []string{"--json"}, nil},
+		{"empty args", []string{}, nil},
+		{"flag at end without value", []string{"--shelf"}, nil},
+		{"interleaved with other flags", []string{"--json", "--shelf", "read", "--limit", "10", "--shelf", "to-read"}, []string{"read", "to-read"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := flagStrings(tt.args, "--shelf", "-s")
+			if len(got) != len(tt.want) {
+				t.Fatalf("flagStrings() = %v, want %v", got, tt.want)
+			}
+			for i := range got {
+				if got[i] != tt.want[i] {
+					t.Errorf("flagStrings()[%d] = %q, want %q", i, got[i], tt.want[i])
+				}
+			}
+		})
+	}
 }

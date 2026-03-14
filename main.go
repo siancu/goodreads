@@ -135,7 +135,7 @@ Commands:
   author    Author information
   user      View user information
   stats     Show your reading statistics
-  export    Export books (JSON or Notion)`)
+  export    Export books as JSON`)
 }
 
 // runBookCommand dispatches book subcommands.
